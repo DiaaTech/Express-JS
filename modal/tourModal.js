@@ -28,6 +28,11 @@ const tourSchema = new mongoose.Schema(
       required: true,
       enum: ['Nature', 'Adventure', 'Ocean', 'Forest'],
     },
+
+    user: {
+      type: mongoose.Schema.ObjectId,
+      ref: 'User',
+    },
   },
   {
     toJSON: { virtuals: true }, // Include virtual properties in JSON
@@ -37,6 +42,12 @@ const tourSchema = new mongoose.Schema(
 // virtual property
 tourSchema.virtual('durationInWeeks').get(function () {
   return Math.floor(this.duration / 7)
+})
+
+tourSchema.virtual('bookings', {
+  ref: 'Booking',
+  foreignField: 'tour',
+  localField: '_id',
 })
 
 // middlewares

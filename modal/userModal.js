@@ -21,6 +21,19 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+
+  toursCreated: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: 'Tour',
+    },
+  ],
+})
+
+userSchema.virtual('bookings', {
+  ref: 'Booking',
+  foreignField: 'user',
+  localField: '_id',
 })
 
 const User = mongoose.model('User', userSchema)

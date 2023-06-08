@@ -1,5 +1,5 @@
 const Tour = require('../modal/tourModal')
-
+const User = require('../modal/userModal')
 // get all tours
 exports.getAllTours = async (req, res) => {
   // do this thing
@@ -51,6 +51,13 @@ exports.createTour = async (req, res) => {
 
     // save tour
     await newTour.save()
+
+    // putt tours in user database
+    const user = await User.findById(req.body.user)
+
+    user.toursCreated.push(newTour._id)
+
+    await user.save()
 
     res.status(200).json({
       status: 'success',
