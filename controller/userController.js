@@ -1,47 +1,94 @@
 const bcrypt = require('bcryptjs')
 const User = require('../modal/userModal')
 const jwt = require('jsonwebtoken')
+const multer = require('multer')
+const sharp = require('sharp')
+const fs = require('fs')
+const path = require('path')
+
+//Upload Photes
+
+const multerStorage = multer.memoryStorage()
+
+const multerFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image')) {
+    cb(null, true)
+  } else {
+    cb(new AppError('Not an image! Please upload only images.', 400), false)
+  }
+}
+
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter,
+})
+
+// upload user photo
+exports.uploadUserPhoto = upload.single('photo')
+
+// resize user photo
+exports.resizeUserPhoto = async (req, res, next) => {
+  try {
+    if (!req.file) return next()
+    const filename = 'user' + '-' + Date.now() + '.jpeg'
+    req.file.filename = filename
+
+    await sharp(req.file.buffer)
+      .resize(200, 200)
+      .toFormat('jpeg')
+      .jpeg({ quality: 90 })
+      .toFile('public/' + req.file.filename)
+
+    req.body.photo = filename
+  } catch (err) {
+    console.log(err)
+  }
+  next()
+}
 
 // Signup User
 exports.signup = async (req, res) => {
-  // if user already exists
-  const user = await User.findOne({ email: req.body.email })
+  try {
+    console.log(req.body)
+    // if user already exists
+    const user = await User.findOne({ email: req.body.email })
 
-  if (user) {
-    return res.status(400).json({
+    if (user) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'User already exists',
+      })
+    }
+
+    // encrypt passwords
+    const ePassword = await bcrypt.hash(req.body.password, 12)
+
+    // create new user
+    const newUser = await User.create(req.body)
+
+    // create token
+    const token = jwt.sign({ id: newUser._id }, process.env.SECRET_KEY)
+
+    // send token
+    res.cookie('jwt', token, {
+      expires: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      httpOnly: true,
+    })
+
+    res.status(200).json({
+      status: 'success',
+      token,
+      data: {
+        newUser,
+      },
+    })
+  } catch (err) {
+    console.log(err)
+    res.status(400).json({
       status: 'fail',
-      message: 'User already exists',
+      message: err,
     })
   }
-
-  // encrypt passwords
-  const ePassword = await bcrypt.hash(req.body.password, 12)
-
-  // create new user
-  const newUser = await User.create({
-    name: req.body.name,
-    email: req.body.email,
-    age: req.body.age,
-    password: ePassword,
-    passwordConfirm: ePassword,
-  })
-
-  // create token
-  const token = jwt.sign({ id: newUser._id }, process.env.SECRET_KEY)
-
-  // send token
-  res.cookie('jwt', token, {
-    expires: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-    httpOnly: true,
-  })
-
-  res.status(200).json({
-    status: 'success',
-    token,
-    data: {
-      newUser,
-    },
-  })
 }
 
 // Login User
@@ -78,12 +125,20 @@ exports.login = async (req, res) => {
     httpOnly: true,
   })
 
+  if (user.photo) {
+    const image = fs.readFileSync(
+      path.join(__dirname, `../public/${user.photo}`)
+    )
+
+    const base64EncodedImage = image.toString('base64')
+
+    user.photo = base64EncodedImage
+  }
+
   res.status(200).json({
     status: 'success',
     token,
-    data: {
-      user,
-    },
+    user,
   })
 }
 
@@ -115,6 +170,19 @@ exports.createUser = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
+
+    // get photoes
+    users.forEach((user) => {
+      if (user.photo) {
+        const image = fs.readFileSync(
+          path.join(__dirname, `../public/${user.photo}`)
+        )
+
+        const base64EncodedImage = image.toString('base64')
+
+        user.photo = base64EncodedImage
+      }
+    })
 
     res.status(200).json({
       status: 'success',

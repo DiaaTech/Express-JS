@@ -10,7 +10,13 @@ tourRouter.route('/').get(tourController.getAllTours)
 
 // /tours (post)
 // posting data
-tourRouter.route('/').post(tourController.createTour)
+tourRouter
+  .route('/')
+  .post(
+    tourController.uploadTourPhoto,
+    tourController.resizeTourPhoto,
+    tourController.createTour
+  )
 
 //tours/12718724
 // getting one tour

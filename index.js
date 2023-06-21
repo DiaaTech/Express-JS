@@ -3,7 +3,7 @@ const http = require('http')
 const express = require('express')
 const dotenv = require('dotenv')
 const mongoose = require('mongoose') // mongoose
-
+const cors = require('cors')
 // ROuters
 const tourRouter = require('./router/tourRouter')
 const userRouter = require('./router/userRouter')
@@ -13,6 +13,7 @@ dotenv.config({ path: './.env' })
 
 const app = express()
 app.use(express.json()) // that will help us to get data from application
+app.use(cors())
 
 // Connect my Database
 const dbURI = process.env.DATABASE.replace(

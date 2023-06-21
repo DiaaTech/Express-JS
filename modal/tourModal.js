@@ -28,6 +28,10 @@ const tourSchema = new mongoose.Schema(
       required: true,
       enum: ['Nature', 'Adventure', 'Ocean', 'Forest'],
     },
+    photo: {
+      type: String,
+      required: true,
+    },
 
     user: {
       type: mongoose.Schema.ObjectId,
@@ -48,13 +52,6 @@ tourSchema.virtual('bookings', {
   ref: 'Booking',
   foreignField: 'tour',
   localField: '_id',
-})
-
-// middlewares
-tourSchema.pre('save', function (next) {
-  console.log('Will save document...')
-  this.noOfParticipants = 0
-  next()
 })
 
 //Modal
